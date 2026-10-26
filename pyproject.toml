@@ -1,0 +1,26 @@
+[project]
+name = "comb"
+version = "0.1.0"
+description = "Filter Wikidata JSON dumps into lean NDJSON subsets"
+readme = "README.md"
+authors = [
+    { name = "Johan Schuijt", email = "johan@resolve.works" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "click>=8.1",
+    "orjson>=3.10",
+]
+
+[project.scripts]
+comb = "comb:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.8",
+]
+
+[build-system]
+requires = ["uv_build>=0.13.5,<0.14.0"]
+build-backend = "uv_build"
