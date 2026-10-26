@@ -3,6 +3,7 @@
 import orjson
 from click.testing import CliRunner
 
+from comb import dump_reader
 from comb.cli import main
 
 
@@ -86,8 +87,8 @@ def dump_bytes() -> bytes:
     return b"\n".join(lines)
 
 
-def run(args: list[str], input_bytes: bytes | None = None):
-    result = CliRunner().invoke(main, args, input=input_bytes, catch_exceptions=False)
+def run(args: list[str]):
+    result = CliRunner().invoke(main, args, catch_exceptions=False)
     return result
 
 
@@ -184,11 +185,33 @@ def test_malformed_lines_skipped_and_counted(tmp_path):
     assert "1 malformed" in result.output
 
 
-def test_stdin_to_stdout():
-    result = run(["-", "-"], input_bytes=dump_bytes())
+def test_multiple_chunks_preserve_dump_order(tmp_path, monkeypatch):
+    # Shrink the automatic chunk minimum so this small dump splits in three
+    monkeypatch.setattr(dump_reader, "MIN_CHUNK_SIZE", 4096)
+    input_path = tmp_path / "dump.json"
+    output_path = tmp_path / "out.json"
+    entities = [{"id": f"Q{i}", "type": "item"} for i in range(400)]
+    lines = [b"["] + [orjson.dumps(e) + b"," for e in entities] + [b"]"]
+    input_path.write_bytes(b"\n".join(lines))
 
-    entities = [orjson.loads(line) for line in result.stdout_bytes.splitlines()]
-    assert [entity["id"] for entity in entities] == ["Q42", "Q17"]
+    result = run([str(input_path), str(output_path)])
+
+    assert [e["id"] for e in read_entities(output_path)] == [
+        f"Q{i}" for i in range(400)
+    ]
+    assert not list(tmp_path.glob("*.part"))
+    assert "400 read, 400 kept" in result.output
+
+
+def test_empty_input_writes_empty_output(tmp_path):
+    input_path = tmp_path / "dump.json"
+    output_path = tmp_path / "out.json"
+    input_path.write_bytes(b"")
+
+    result = run([str(input_path), str(output_path)])
+
+    assert output_path.read_bytes() == b""
+    assert "0 read, 0 kept, 0 malformed" in result.output
 
 
 def test_usage_errors(tmp_path):
