@@ -72,14 +72,13 @@ def _process_chunk(
     part_path: str,
     worker_id: int,
     config: FilterConfig,
-) -> tuple[int, int, int, int]:
+) -> tuple[int, int, int]:
     """Filter one byte range of the dump into a part file.
 
-    Returns ``(read, kept, malformed, written)`` counts for this chunk.
+    Returns ``(read, kept, written)`` counts for this chunk.
     """
     read = 0
     kept = 0
-    malformed = 0
     written = 0
 
     with open(part_path, "wb") as output_stream:
@@ -90,19 +89,7 @@ def _process_chunk(
             if line.endswith(b","):
                 line = line[:-1]
 
-            try:
-                entity = orjson.loads(line)
-            except orjson.JSONDecodeError:
-                malformed += 1
-                continue
-            if (
-                not isinstance(entity, dict)
-                or not isinstance(entity.get("id"), str)
-                or not isinstance(entity.get("type"), str)
-            ):
-                malformed += 1
-                continue
-
+            entity = orjson.loads(line)
             read += 1
             filtered = filter_entity(entity, config)
             if filtered is None:
@@ -119,7 +106,7 @@ def _process_chunk(
                     f"worker {worker_id}: {read:,} read ({kept:,} kept)", err=True
                 )
 
-    return read, kept, malformed, written
+    return read, kept, written
 
 
 @click.command()
@@ -218,10 +205,10 @@ def main(input_path, output_path, types, attributes, properties):
                 shutil.copyfileobj(part_stream, output_stream)
             Path(part_path).unlink()
 
-    totals = [sum(counts) for counts in zip(*results)] if results else [0, 0, 0, 0]
-    read, kept, malformed, written = totals
+    totals = [sum(counts) for counts in zip(*results)] if results else [0, 0, 0]
+    read, kept, written = totals
     click.echo(
-        f"Done: {read:,} read, {kept:,} kept, {malformed} malformed, "
+        f"Done: {read:,} read, {kept:,} kept, "
         f"{format_bytes(written)} written in "
         f"{format_duration(time.monotonic() - started)}",
         err=True,

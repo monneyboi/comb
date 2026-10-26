@@ -174,17 +174,6 @@ def test_empty_claims_attribute_omitted(tmp_path):
         assert "claims" not in entity
 
 
-def test_malformed_lines_skipped_and_counted(tmp_path):
-    input_path = tmp_path / "dump.json"
-    output_path = tmp_path / "out.json"
-    input_path.write_bytes(dump_bytes() + b"\n{broken json,\n")
-
-    result = run([str(input_path), str(output_path)])
-
-    assert [entity["id"] for entity in read_entities(output_path)] == ["Q42", "Q17"]
-    assert "1 malformed" in result.output
-
-
 def test_multiple_chunks_preserve_dump_order(tmp_path, monkeypatch):
     # Shrink the automatic chunk minimum so this small dump splits in three
     monkeypatch.setattr(dump_reader, "MIN_CHUNK_SIZE", 4096)
@@ -211,7 +200,7 @@ def test_empty_input_writes_empty_output(tmp_path):
     result = run([str(input_path), str(output_path)])
 
     assert output_path.read_bytes() == b""
-    assert "0 read, 0 kept, 0 malformed" in result.output
+    assert "0 read, 0 kept" in result.output
 
 
 def test_usage_errors(tmp_path):

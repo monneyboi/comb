@@ -33,4 +33,3 @@ comb latest-all.json poliloom.json --properties P31,P279
 
 - Source dumps: <https://dumps.wikimedia.org/wikidatawiki/entities/> (`latest-all.json.bz2`).
 - The dumps use parallel compression; `lbzip2` decompresses them fastest.
-- Malformed lines are skipped and counted, never fatal.

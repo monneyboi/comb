@@ -21,8 +21,6 @@ def _next_line_start(f, from_pos: int, file_size: int) -> int:
     pos = from_pos
     while pos < file_size:
         block = f.read(min(_NEWLINE_SEARCH_BLOCK, file_size - pos))
-        if not block:
-            break
         newline_pos = block.find(b"\n")
         if newline_pos != -1:
             return pos + newline_pos + 1
@@ -83,7 +81,5 @@ def read_chunk_lines(
         current_pos = start_byte
         while current_pos < end_byte:
             line = f.readline()
-            if not line:
-                break
             current_pos = f.tell()
             yield line
